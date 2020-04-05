@@ -155,23 +155,37 @@ library BLSSignature {
         );
     }
 
-    function decodePublicKey(bytes memory encodedPublicKey) private pure returns (G1Point) {
-        // TODO the decoding...
-        return G1Point(Fp(0,0),Fp(0,0));
+    function decodeG1Point(bytes memory encodedX, Fp Y) private pure returns (G1Point) {
+        Fp X = Fp(
+            uint(encodedX[32:48]),
+            uint(encodedX[0:32]),
+        );
+        return G1Point(X,Y);
     }
 
-    function decodeSignature(bytes memory encodedSignature) private pure returns (G2Point) {
-        // TODO the decoding...
-        return G2Point(Fp2(Fp(0,0), Fp(0,0)), Fp2(Fp(0,0), Fp(0,0)));
+    function decodeG2Point(bytes memory encodedX, Fp2 Y) private pure returns (G2Point) {
+        Fp2 X = Fp2(
+            Fp(
+                uint(encodedX[32:48]),
+                uint(encodedX[0:32]),
+            ),
+            Fp(
+                uint(encodedX[80:96]),
+                uint(encodedX[48:80]),
+            )
+        );
+        return G2Point(X, Y);
     }
 
     function isValid(
         bytes32 message,
         bytes memory encodedPublicKey,
-        bytes memory encodedSignature
+        bytes memory encodedSignature,
+        Fp publicKeyYCoordinate,
+        Fp2 signatureYCoordinate,
     ) internal returns (bool) {
-        G1Point publicKey = decodePublicKey(encodedPublicKey);
-        G2Point signature = decodeSignature(encodedSignature);
+        G1Point publicKey = decodeG1Point(encodedPublicKey, publicKeyYCoordinate);
+        G2Point signature = decodeG2Point(encodedSignature, signatureYCoordinate);
 
         Fp2 messageInField = hashToField(message);
         G2Point messageOnCurve = mapToCurve(messageInField);
@@ -193,15 +207,27 @@ contract DepositContractProxy  {
         bytes memory publicKey,
         bytes32 withdrawalCredentials,
         bytes memory signature,
-        bytes32 depositDataRoot
+        bytes32 depositDataRoot,
+        Fp publicKeyYCoordinate,
+        Fp2 signatureYCoordinate,
     ) public payable {
         require(publicKey.length == PUBLIC_KEY_LENGTH, "incorrectly sized public key");
         require(signature.length == SIGNATURE_LENGTH, "incorrectly sized signature");
 
-        bytes32 signingRoot = DepositSSZ.computeSigningRoot(publicKey, withdrawalCredentials, msg.value);
+        bytes32 signingRoot = DepositSSZ.computeSigningRoot(
+            publicKey,
+            withdrawalCredentials,
+            msg.value
+        );
 
         require(
-            BLSSignature.isValid(signingRoot, publicKey, signature),
+            BLSSignature.isValid(
+                signingRoot,
+                publicKey,
+                signature,
+                publicKeyYCoordinate,
+                signatureYCoordinate
+            ),
             "invalid BLS signature given deposit data"
         );
 
