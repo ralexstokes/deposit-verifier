@@ -156,14 +156,14 @@ library BLSSignature {
         require(success, "call to modular exponentiation precompile failed");
     }
 
-    function convertSliceToFp(bytes memory data, uint start, uint end) private pure returns (Fp) {
+    function convertSliceToFp(bytes memory data, uint start, uint end) private view returns (Fp) {
         bytes memory fieldElement = reduceModulo(data, start, end);
         uint a = sliceToUint(fieldElement, 32, 48);
         uint b = sliceToUint(fieldElement, 0, 32);
         return Fp(a, b);
     }
 
-    function hashToField(bytes32 message) private pure returns (Fp2[2] memory result) {
+    function hashToField(bytes32 message) private view returns (Fp2[2] memory result) {
         bytes memory some_bytes = expandMessage(message);
         result[0] = Fp2(
             convertSliceToFp(some_bytes, 0, 64),
