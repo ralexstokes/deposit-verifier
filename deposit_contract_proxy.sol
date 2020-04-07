@@ -60,6 +60,8 @@ library BLSSignature {
     address constant BLS12_381_G2_ADD_ADDRESS = 0xC;
     address constant BLS12_381_G2_MULTIPLY_ADDRESS = 0xD;
     string constant BLS_SIG_DST = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
+    bytes constant BLS12_381_FIELD_MODULUS = 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab;
+    address constant MOD_EXP_PRECOMPILE_ADDRESS = 0x5;
 
     // Fp is a field element with the high-order part stored in `a`.
     struct Fp {
@@ -101,24 +103,75 @@ library BLSSignature {
         );
     }
 
-    function convertBytesToFp(bytes memory data, uint start, uint end) private pure returns (Fp) {
-        Fp result;
-        // TODO
-        // read data[start:end]
-        // convert to some number, modulo FIELD_MODULUS
-        // split in two and make Fp
+    function sliceToUint(bytes memory data, uint start, uint end) private pure returns (uint) {
+        uint length = end - start;
+        assert(length >= 0);
+        assert(length <= 32);
+
+        uint result
+        for (uint i = 0; i < length; i++) {
+            byte b = data[start+i];
+            result = result + (uint8(b) * 2**(8*(length-i-1)));
+        }
         return result;
+    }
+
+    function reduceModulo(bytes memory data, uint start, uint end) private pure returns (bytes memory result) {
+        uint length = end - start;
+        assert (length >= 0);
+        assert (length <= 32);
+
+        bool success;
+        assembly {
+            let p := mload(0x40)
+
+            mstore(p,                   length)                        // length of base
+            mstore(add(p, 0x20),        0x20)                          // length of exponent
+            mstore(add(p, 0x40),        48)                            // length of modulus
+            // NOTE: we copy the base from `data`
+            for
+                { let i := 0 }
+                lt(i, length)
+                {  i := add(i, 1) }
+            {
+                mstore8(                                               // base
+                    add(p, add(0x60, i)),
+                    byte(add(start, i), data)
+                )
+            }
+            mstore(add(p, add(0x60, length)), 1)                       // exponent
+            mstore(add(p, add(0x80, length)), BLS12_381_FIELD_MODULUS) // modulus
+
+            success := staticcall(
+                sub(gas, 2000),
+                MOD_EXP_PRECOMPILE_ADDRESS,
+                p,
+                add(0xB0, length),
+                result,
+                48,
+            )
+            // Use "invalid" to make gas estimation work
+            switch success case 0 { invalid }
+        }
+        require(success, "call to modular exponentiation precompile failed");
+    }
+
+    function convertSliceToFp(bytes memory data, uint start, uint end) private pure returns (Fp) {
+        bytes memory fieldElement = reduceModulo(data, start, end);
+        uint a = sliceToUint(fieldElement, 32, 48);
+        uint b = sliceToUint(fieldElement, 0, 32);
+        return Fp(a, b);
     }
 
     function hashToField(bytes32 message) private pure returns (Fp2[2] memory result) {
         bytes memory some_bytes = expandMessage(message);
         result[0] = Fp2(
-            convertBytesToFp(some_bytes, 0, 64),
-            convertBytesToFp(some_bytes, 64, 128)
+            convertSliceToFp(some_bytes, 0, 64),
+            convertSliceToFp(some_bytes, 64, 128)
         );
         result[1] = Fp2(
-            convertBytesToFp(some_bytes, 128, 192),
-            convertBytesToFp(some_bytes, 192, 256)
+            convertSliceToFp(some_bytes, 128, 192),
+            convertSliceToFp(some_bytes, 192, 256)
         );
         return;
     }
@@ -229,28 +282,6 @@ library BLSSignature {
                 114417265404584670498511149331300188430316142484413708742216858159411894806497
             ),
         );
-    }
-
-    function convertBEBytesToUint(bytes memory data) private pure returns (uint) {
-        assert(data.length <= 32);
-
-        uint result;
-        for (uint i = 0; i < data.length; i++) {
-            byte b = data[i];
-            result = result + (uint8(b) * 2**(8*(data.length-i-1)));
-        }
-        return result;
-    }
-
-    function sliceToUint(bytes memory data, uint start, uint end) private pure returns (uint) {
-        uint length = end - start;
-        assert(length >= 0);
-
-        bytes memory slice = new bytes(length);
-        for (uint i = 0; i < length; i++) {
-            slice[i] = data[start+i]
-        }
-        return convertBEBytesToUint(slice);
     }
 
     function decodeG1Point(bytes memory encodedX, Fp Y) private pure returns (G1Point) {
