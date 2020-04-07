@@ -116,6 +116,7 @@ library BLSSignature {
         return result;
     }
 
+    // Reduce the number encoded as the big-endian slice of data[start:end] modulo the BLS12-381 field modulus.
     function reduceModulo(bytes memory data, uint start, uint end) private view returns (bytes memory result) {
         uint length = end - start;
         assert (length >= 0);
@@ -139,8 +140,8 @@ library BLSSignature {
                 )
             }
             mstore(add(p, add(0x60, length)), 1)                       // exponent
-            mstore(add(p, add(0x80, length)), 0x1a0111ea397fe69a4b1ba7b6434bacd76) // modulus, pt. 1
-            mstore(add(p, add(0xA0, length)), 0x4774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab) // modulus, pt 2
+            mstore(add(p, add(0x80, length)), 0x1a0111ea397fe69a4b1ba7b6434bacd7) // modulus, pt. 1
+            mstore(add(p, add(0xA0, length)), 0x64774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab) // modulus, pt 2
 
             success := staticcall(
                 sub(gas(), 2000),
@@ -148,8 +149,7 @@ library BLSSignature {
                 p,
                 add(0xC0, length),
                 result,
-                48,
-            )
+                48)
             // Use "invalid" to make gas estimation work
             switch success case 0 { invalid() }
         }
