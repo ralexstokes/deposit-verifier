@@ -55,13 +55,13 @@ library DepositSSZ {
 
 library BLSSignature {
     // NOTE: precompile addresses are placeholders
-    address constant BLS12_381_PAIRING_PRECOMPILE_ADDRESS = 0xA;
-    address constant BLS12_381_MAP_FIELD_TO_CURVE_PRECOMPILE_ADDRESS = 0xB;
-    address constant BLS12_381_G2_ADD_ADDRESS = 0xC;
-    address constant BLS12_381_G2_MULTIPLY_ADDRESS = 0xD;
+    uint8 constant BLS12_381_PAIRING_PRECOMPILE_ADDRESS = 0xA;
+    uint8 constant BLS12_381_MAP_FIELD_TO_CURVE_PRECOMPILE_ADDRESS = 0xB;
+    uint8 constant BLS12_381_G2_ADD_ADDRESS = 0xC;
+    uint8 constant BLS12_381_G2_MULTIPLY_ADDRESS = 0xD;
     string constant BLS_SIG_DST = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
-    bytes constant BLS12_381_FIELD_MODULUS = 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab;
-    address constant MOD_EXP_PRECOMPILE_ADDRESS = 0x5;
+    // bytes constant BLS12_381_FIELD_MODULUS = 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab;
+    uint8 constant MOD_EXP_PRECOMPILE_ADDRESS = 0x5;
 
     // Fp is a field element with the high-order part stored in `a`.
     struct Fp {
@@ -116,10 +116,9 @@ library BLSSignature {
         return result;
     }
 
-    function reduceModulo(bytes memory data, uint start, uint end) private pure returns (bytes memory result) {
+    function reduceModulo(bytes memory data, uint start, uint end) private view returns (bytes memory result) {
         uint length = end - start;
         assert (length >= 0);
-        assert (length <= 32);
 
         bool success;
         assembly {
@@ -140,18 +139,19 @@ library BLSSignature {
                 )
             }
             mstore(add(p, add(0x60, length)), 1)                       // exponent
-            mstore(add(p, add(0x80, length)), BLS12_381_FIELD_MODULUS) // modulus
+            mstore(add(p, add(0x80, length)), 0x1a0111ea397fe69a4b1ba7b6434bacd76) // modulus, pt. 1
+            mstore(add(p, add(0xA0, length)), 0x4774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab) // modulus, pt 2
 
             success := staticcall(
-                sub(gas, 2000),
+                sub(gas(), 2000),
                 MOD_EXP_PRECOMPILE_ADDRESS,
                 p,
-                add(0xB0, length),
+                add(0xC0, length),
                 result,
                 48,
             )
             // Use "invalid" to make gas estimation work
-            switch success case 0 { invalid }
+            switch success case 0 { invalid() }
         }
         require(success, "call to modular exponentiation precompile failed");
     }
@@ -180,7 +180,7 @@ library BLSSignature {
         bool success;
         assembly {
             success := staticcall(
-                sub(gas, 2000),
+                sub(gas(), 2000),
                 BLS12_381_MAP_FIELD_TO_CURVE_PRECOMPILE_ADDRESS,
                 input,
                 128,
@@ -188,7 +188,7 @@ library BLSSignature {
                 256,
             )
             // Use "invalid" to make gas estimation work
-            switch success case 0 { invalid }
+            switch success case 0 { invalid() }
         }
         require(success, "call to map to curve precompile failed");
     }
@@ -216,7 +216,7 @@ library BLSSignature {
         bool success;
         assembly {
             success := staticcall(
-                sub(gas, 2000),
+                sub(gas(), 2000),
                 BLS12_381_G2_ADD_ADDRESS,
                 input,
                 512,
@@ -224,7 +224,7 @@ library BLSSignature {
                 256,
             )
             // Use "invalid" to make gas estimation work
-            switch success case 0 { invalid }
+            switch success case 0 { invalid() }
         }
         require(success, "call to addition in G2 precompile failed");
     }
@@ -257,7 +257,7 @@ library BLSSignature {
         bool success;
         assembly {
             success := staticcall(
-                sub(gas, 2000),
+                sub(gas(), 2000),
                 BLS12_381_PAIRING_PRECOMPILE_ADDRESS,
                 input,
                 384,
@@ -265,7 +265,7 @@ library BLSSignature {
                 32,
             )
             // Use "invalid" to make gas estimation work
-            switch success case 0 { invalid }
+            switch success case 0 { invalid() }
         }
         require(success, "call to pairing precompile failed");
     }
