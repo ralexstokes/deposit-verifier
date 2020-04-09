@@ -67,7 +67,7 @@ library BLSSignature {
     uint8 constant BLS12_381_MAP_FIELD_TO_CURVE_PRECOMPILE_ADDRESS = 0xB;
     uint8 constant BLS12_381_G2_ADD_ADDRESS = 0xC;
     uint8 constant BLS12_381_G2_MULTIPLY_ADDRESS = 0xD;
-    string constant BLS_SIG_DST = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
+    string constant BLS_SIG_DST = "+BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
     uint8 constant MOD_EXP_PRECOMPILE_ADDRESS = 0x5;
 
     // Fp is a field element with the high-order part stored in `a`.
@@ -96,18 +96,34 @@ library BLSSignature {
     }
 
     function expandMessage(bytes32 message) private pure returns (bytes memory) {
-        // uint LEN_IN_BYTES = 256;
-        // TODO implement `expand_message_xmd` with `message`, `DST` and `LEN_IN_BYTES`
-        return abi.encodePacked(
-            sha256(abi.encodePacked(message)),
-            sha256(abi.encodePacked(message)),
-            sha256(abi.encodePacked(message)),
-            sha256(abi.encodePacked(message)),
-            sha256(abi.encodePacked(message)),
-            sha256(abi.encodePacked(message)),
-            sha256(abi.encodePacked(message)),
-            sha256(abi.encodePacked(message))
-        );
+        bytes memory b0Input = new bytes(143);
+        for (uint i = 0; i < 32; i++) {
+            b0Input[i+64] = message[i];
+        }
+        b0Input[96] = 0x01;
+        for (uint i = 0; i < 44; i++) {
+            b0Input[i+99] = bytes(BLS_SIG_DST)[i];
+        }
+
+        bytes32 b0 = sha256(abi.encodePacked(b0Input));
+
+        bytes memory output = new bytes(256);
+        bytes32 chunk = sha256(abi.encodePacked(b0, byte(0x01), bytes(BLS_SIG_DST)));
+        assembly {
+            mstore(add(output, 0x20), chunk);
+        }
+        for (uint i = 2; i < 9; i++) {
+            bytes32 input;
+            assembly {
+                input := xor(b0, mload(add(output, add(0x20, mul(0x20, sub(i, 2))))))
+            }
+            chunk = sha256(abi.encodePacked(input, byte(uint8(i)), bytes(BLS_SIG_DST)));
+            assembly {
+                mstore(add(output, add(0x20, mul(0x20, sub(i, 1)))), chunk)
+            }
+        }
+
+        return output;
     }
 
     function sliceToUint(bytes memory data, uint start, uint end) private pure returns (uint) {
