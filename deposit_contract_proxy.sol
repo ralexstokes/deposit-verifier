@@ -54,13 +54,12 @@ library DepositSSZ {
 }
 
 library BLSSignature {
-    // NOTE: precompile addresses are placeholders
+    // NOTE: BLS12-381 precompile addresses are placeholders
     uint8 constant BLS12_381_PAIRING_PRECOMPILE_ADDRESS = 0xA;
     uint8 constant BLS12_381_MAP_FIELD_TO_CURVE_PRECOMPILE_ADDRESS = 0xB;
     uint8 constant BLS12_381_G2_ADD_ADDRESS = 0xC;
     uint8 constant BLS12_381_G2_MULTIPLY_ADDRESS = 0xD;
     string constant BLS_SIG_DST = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
-    // bytes constant BLS12_381_FIELD_MODULUS = 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab;
     uint8 constant MOD_EXP_PRECOMPILE_ADDRESS = 0x5;
 
     // Fp is a field element with the high-order part stored in `a`.
@@ -108,7 +107,7 @@ library BLSSignature {
         assert(length >= 0);
         assert(length <= 32);
 
-        uint result
+        uint result;
         for (uint i = 0; i < length; i++) {
             byte b = data[start+i];
             result = result + (uint8(b) * 2**(8*(length-i-1)));
@@ -180,7 +179,7 @@ library BLSSignature {
         return Fp(a, b);
     }
 
-    function hashToField(bytes32 message) private view returns (Fp2[2] memory result) {
+    function hashToField(bytes32 message) private view returns (Fp2[2] result) {
         bytes memory some_bytes = expandMessage(message);
         result[0] = Fp2(
             convertSliceToFp(some_bytes, 0, 64),
@@ -190,10 +189,9 @@ library BLSSignature {
             convertSliceToFp(some_bytes, 128, 192),
             convertSliceToFp(some_bytes, 192, 256)
         );
-        return;
     }
 
-    function mapToCurve(Fp2 memory input) private view returns (G2Point result) {
+    function mapToCurve(Fp2 input) private view returns (G2Point result) {
         bool success;
         assembly {
             success := staticcall(
@@ -248,7 +246,7 @@ library BLSSignature {
 
     // Implements v6 of "hash to the curve" of the IETF BLS draft.
     function hashToCurve(bytes32 message) private view returns (G2Point) {
-        Fp2[2] memory messageElementsInField = hashToField(message);
+        Fp2[2] messageElementsInField = hashToField(message);
         G2Point firstPoint = mapToCurve(messageElementsInField[0]);
         G2Point secondPoint = mapToCurve(messageElementsInField[1]);
         return addG2(firstPoint, secondPoint);
