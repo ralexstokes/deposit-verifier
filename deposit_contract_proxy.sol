@@ -1,10 +1,18 @@
 pragma solidity ^0.6.4;
+pragma experimental ABIEncoderV2;
 
 interface DepositContract {
-    function deposit(bytes, bytes32, bytes, bytes32) external payable;
+    function deposit(
+        bytes calldata publicKey,
+        bytes32 withdrawalCredentials,
+        bytes calldata signature,
+        bytes32 depositDataRoot
+    ) external payable;
 }
 
 library DepositSSZ {
+    uint constant PUBLIC_KEY_LENGTH = 48;
+
     uint constant WEI_PER_GWEI = 1e9;
     // Constant related to versioning serializations of deposits on eth2
     bytes32 constant DEPOSIT_DOMAIN = 0x03000000f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a9;
@@ -66,7 +74,7 @@ library BLSSignature {
     struct Fp {
         uint a;
         uint b;
-    };
+    }
 
     // Fp2 is an extension field element with the coefficient of the
     // quadratic non-residue stored in `b`, i.e. p = a + i * b
@@ -91,14 +99,14 @@ library BLSSignature {
         // uint LEN_IN_BYTES = 256;
         // TODO implement `expand_message_xmd` with `message`, `DST` and `LEN_IN_BYTES`
         return abi.encodePacked(
-            sha256(message),
-            sha256(message),
-            sha256(message),
-            sha256(message),
-            sha256(message),
-            sha256(message),
-            sha256(message),
-            sha256(message),
+            sha256(abi.encodePacked(message)),
+            sha256(abi.encodePacked(message)),
+            sha256(abi.encodePacked(message)),
+            sha256(abi.encodePacked(message)),
+            sha256(abi.encodePacked(message)),
+            sha256(abi.encodePacked(message)),
+            sha256(abi.encodePacked(message)),
+            sha256(abi.encodePacked(message))
         );
     }
 
@@ -172,14 +180,14 @@ library BLSSignature {
         return result;
     }
 
-    function convertSliceToFp(bytes memory data, uint start, uint end) private view returns (Fp) {
+    function convertSliceToFp(bytes memory data, uint start, uint end) private view returns (Fp memory) {
         bytes memory fieldElement = reduceModulo(data, start, end);
         uint a = sliceToUint(fieldElement, 32, 48);
         uint b = sliceToUint(fieldElement, 0, 32);
         return Fp(a, b);
     }
 
-    function hashToField(bytes32 message) private view returns (Fp2[2] result) {
+    function hashToField(bytes32 message) private view returns (Fp2[2] memory result) {
         bytes memory some_bytes = expandMessage(message);
         result[0] = Fp2(
             convertSliceToFp(some_bytes, 0, 64),
@@ -191,7 +199,7 @@ library BLSSignature {
         );
     }
 
-    function mapToCurve(Fp2 input) private view returns (G2Point result) {
+    function mapToCurve(Fp2 memory input) private view returns (G2Point memory result) {
         bool success;
         assembly {
             success := staticcall(
@@ -200,7 +208,7 @@ library BLSSignature {
                 input,
                 128,
                 result,
-                256,
+                256
             )
             // Use "invalid" to make gas estimation work
             switch success case 0 { invalid() }
@@ -208,7 +216,7 @@ library BLSSignature {
         require(success, "call to map to curve precompile failed");
     }
 
-    function addG2(G2Point a, G2Point b) private view returns (G2Point result) {
+    function addG2(G2Point memory a, G2Point memory b) private view returns (G2Point memory result) {
         uint[16] memory input;
         input[0]  = a.X.a.a;
         input[1]  = a.X.a.b;
@@ -236,7 +244,7 @@ library BLSSignature {
                 input,
                 512,
                 result,
-                256,
+                256
             )
             // Use "invalid" to make gas estimation work
             switch success case 0 { invalid() }
@@ -245,14 +253,14 @@ library BLSSignature {
     }
 
     // Implements v6 of "hash to the curve" of the IETF BLS draft.
-    function hashToCurve(bytes32 message) private view returns (G2Point) {
-        Fp2[2] messageElementsInField = hashToField(message);
-        G2Point firstPoint = mapToCurve(messageElementsInField[0]);
-        G2Point secondPoint = mapToCurve(messageElementsInField[1]);
+    function hashToCurve(bytes32 message) private view returns (G2Point memory) {
+        Fp2[2] memory messageElementsInField = hashToField(message);
+        G2Point memory firstPoint = mapToCurve(messageElementsInField[0]);
+        G2Point memory secondPoint = mapToCurve(messageElementsInField[1]);
         return addG2(firstPoint, secondPoint);
     }
 
-    function paring(G1Point u, G2Point v) private view returns (bytes32 result) {
+    function pairing(G1Point memory u, G2Point memory v) private view returns (bytes32 result) {
         uint[12] memory input;
 
         input[0] =  u.X.a;
@@ -277,7 +285,7 @@ library BLSSignature {
                 input,
                 384,
                 result,
-                32,
+                32
             )
             // Use "invalid" to make gas estimation work
             switch success case 0 { invalid() }
@@ -286,34 +294,34 @@ library BLSSignature {
     }
 
     // Return the generator of G1.
-    function P1() private pure returns (G1Point) {
+    function P1() private pure returns (G1Point memory) {
         return G1Point(
             Fp(
                 31827880280837800241567138048534752271,
-                88385725958748408079899006800036250932223001591707578097800747617502997169851,
+                88385725958748408079899006800036250932223001591707578097800747617502997169851
             ),
             Fp(
                 11568204302792691131076548377920244452,
                 114417265404584670498511149331300188430316142484413708742216858159411894806497
-            ),
+            )
         );
     }
 
-    function decodeG1Point(bytes memory encodedX, Fp Y) private pure returns (G1Point) {
+    function decodeG1Point(bytes memory encodedX, Fp memory Y) private pure returns (G1Point memory) {
         uint a = sliceToUint(encodedX, 32, 48);
         uint b = sliceToUint(encodedX, 0, 32);
-        Fp X = Fp(a, b);
+        Fp memory X = Fp(a, b);
         return G1Point(X,Y);
     }
 
-    function decodeG2Point(bytes memory encodedX, Fp2 Y) private pure returns (G2Point) {
+    function decodeG2Point(bytes memory encodedX, Fp2 memory Y) private pure returns (G2Point memory) {
         uint aa = sliceToUint(encodedX, 32, 48);
         uint ab = sliceToUint(encodedX, 0, 32);
         uint ba = sliceToUint(encodedX, 80, 96);
         uint bb = sliceToUint(encodedX, 48, 80);
-        Fp2 X = Fp2(
+        Fp2 memory X = Fp2(
             Fp(aa,ab),
-            Fp(ba, bb),
+            Fp(ba, bb)
         );
         return G2Point(X, Y);
     }
@@ -322,13 +330,13 @@ library BLSSignature {
         bytes32 message,
         bytes memory encodedPublicKey,
         bytes memory encodedSignature,
-        Fp publicKeyYCoordinate,
-        Fp2 signatureYCoordinate,
+        Fp memory publicKeyYCoordinate,
+        Fp2 memory signatureYCoordinate
     ) internal view returns (bool) {
-        G1Point publicKey = decodeG1Point(encodedPublicKey, publicKeyYCoordinate);
-        G2Point signature = decodeG2Point(encodedSignature, signatureYCoordinate);
+        G1Point memory publicKey = decodeG1Point(encodedPublicKey, publicKeyYCoordinate);
+        G2Point memory signature = decodeG2Point(encodedSignature, signatureYCoordinate);
 
-        G2Point messageOnCurve = hashToCurve(message);
+        G2Point memory messageOnCurve = hashToCurve(message);
         return pairing(publicKey, messageOnCurve) == pairing(P1(), signature);
     }
 }
@@ -348,8 +356,8 @@ contract DepositContractProxy  {
         bytes32 withdrawalCredentials,
         bytes memory signature,
         bytes32 depositDataRoot,
-        Fp publicKeyYCoordinate,
-        Fp2 signatureYCoordinate,
+        BLSSignature.Fp memory publicKeyYCoordinate,
+        BLSSignature.Fp2 memory signatureYCoordinate
     ) public payable {
         require(publicKey.length == PUBLIC_KEY_LENGTH, "incorrectly sized public key");
         require(signature.length == SIGNATURE_LENGTH, "incorrectly sized signature");
