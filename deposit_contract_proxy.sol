@@ -117,43 +117,60 @@ library BLSSignature {
     }
 
     // Reduce the number encoded as the big-endian slice of data[start:end] modulo the BLS12-381 field modulus.
-    function reduceModulo(bytes memory data, uint start, uint end) private view returns (bytes memory result) {
+    // Copying of the base is cribbed from the following:
+    // https://github.com/ethereum/solidity-examples/blob/f44fe3b3b4cca94afe9c2a2d5b7840ff0fafb72e/src/unsafe/Memory.sol#L57-L74
+    function reduceModulo(bytes memory data, uint start, uint end) private view returns (bytes memory) {
         uint length = end - start;
         assert (length >= 0);
+        assert (length <= data.length);
+
+        bytes memory result = new bytes(48);
 
         bool success;
         assembly {
             let p := mload(0x40)
-
-            mstore(p,                   length)                        // length of base
-            mstore(add(p, 0x20),        0x20)                          // length of exponent
-            mstore(add(p, 0x40),        48)                            // length of modulus
-            // NOTE: we copy the base from `data`
-            for
-                { let i := 0 }
-                lt(i, length)
-                {  i := add(i, 1) }
+            // length of base
+            mstore(p, length)
+            // length of exponent
+            mstore(add(p, 0x20), 0x20)
+            // length of modulus
+            mstore(add(p, 0x40), 48)
+            // base
+            // first, copy slice by chunks of EVM words
+            let ctr := length
+            let src := add(data, 0x20)
+            let dst := add(p, 0x60)
+            for { }
+                or(gt(ctr, 0x20), eq(ctr, 0x20))
+                { ctr := sub(ctr, 0x20) }
             {
-                mstore8(                                               // base
-                    add(p, add(0x60, i)),
-                    byte(add(start, i), data)
-                )
+                mstore(dst, mload(src))
+                dst := add(dst, 0x20)
+                src := add(src, 0x20)
             }
-            mstore(add(p, add(0x60, length)), 1)                       // exponent
-            mstore(add(p, add(0x80, length)), 0x1a0111ea397fe69a4b1ba7b6434bacd7) // modulus, pt. 1
-            mstore(add(p, add(0xA0, length)), 0x64774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab) // modulus, pt 2
-
+            // next, copy remaining bytes in last partial word
+            let mask := sub(exp(256, sub(0x20, ctr)), 1)
+            let srcpart := and(mload(src), not(mask))
+            let destpart := and(mload(dst), mask)
+            mstore(dst, or(destpart, srcpart))
+            // exponent
+            mstore(add(p, add(0x60, length)), 1)
+            // modulus
+            let modulusAddr := add(p, add(0x60, add(0x10, length)))
+            mstore(modulusAddr, or(mload(modulusAddr), 0x1a0111ea397fe69a4b1ba7b6434bacd7)) // pt 1
+            mstore(add(p, add(0x90, length)), 0x64774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab) // pt 2
             success := staticcall(
                 sub(gas(), 2000),
                 MOD_EXP_PRECOMPILE_ADDRESS,
                 p,
-                add(0xC0, length),
-                result,
+                add(0xB0, length),
+                add(result, 0x20),
                 48)
             // Use "invalid" to make gas estimation work
             switch success case 0 { invalid() }
         }
         require(success, "call to modular exponentiation precompile failed");
+        return result;
     }
 
     function convertSliceToFp(bytes memory data, uint start, uint end) private view returns (Fp) {
