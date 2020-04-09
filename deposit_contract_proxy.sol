@@ -353,7 +353,11 @@ library BLSSignature {
         G2Point memory signature = decodeG2Point(encodedSignature, signatureYCoordinate);
 
         G2Point memory messageOnCurve = hashToCurve(message);
-        return pairing(publicKey, messageOnCurve) == pairing(P1(), signature);
+        bytes32 firstPairing = pairing(publicKey, messageOnCurve);
+        bytes32 secondPairing = pairing(P1(), signature);
+        require(firstPairing == secondPairing, "signature verification failed as pairing results did not match");
+        require(firstPairing == 0x1, "signature verification failed as pairings did not map to the identity in Gt");
+        return true;
     }
 }
 
