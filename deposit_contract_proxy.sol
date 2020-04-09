@@ -348,8 +348,8 @@ contract DepositContractProxy  {
         bytes32 withdrawalCredentials,
         bytes memory signature,
         bytes32 depositDataRoot,
-        Fp publicKeyYCoordinate,
-        Fp2 signatureYCoordinate
+        BLSSignature.Fp memory publicKeyYCoordinate,
+        BLSSignature.Fp2 memory signatureYCoordinate
     ) public payable {
         require(publicKey.length == PUBLIC_KEY_LENGTH, "incorrectly sized public key");
         require(signature.length == SIGNATURE_LENGTH, "incorrectly sized signature");
