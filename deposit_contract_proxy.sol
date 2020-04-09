@@ -252,7 +252,7 @@ library BLSSignature {
         return addG2(firstPoint, secondPoint);
     }
 
-    function paring(G1Point memory u, G2Point memory v) private view returns (bytes32 result) {
+    function pairing(G1Point memory u, G2Point memory v) private view returns (bytes32 result) {
         uint[12] memory input;
 
         input[0] =  u.X.a;
