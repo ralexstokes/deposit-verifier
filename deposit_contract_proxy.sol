@@ -239,18 +239,18 @@ library BLSSignature {
         input[2]  = a.X.b.a;
         input[3]  = a.X.b.b;
         input[4]  = a.Y.a.a;
-        input[5]  = a.Y.a.a;
-        input[6]  = a.Y.a.b;
-        input[7]  = a.Y.b.a;
+        input[5]  = a.Y.a.b;
+        input[6]  = a.Y.b.a;
+        input[7]  = a.Y.b.b;
 
         input[8]  = b.X.a.a;
         input[9]  = b.X.a.b;
         input[10] = b.X.b.a;
         input[11] = b.X.b.b;
         input[12] = b.Y.a.a;
-        input[13] = b.Y.a.a;
-        input[14] = b.Y.a.b;
-        input[15] = b.Y.b.a;
+        input[13] = b.Y.a.b;
+        input[14] = b.Y.b.a;
+        input[15] = b.Y.b.b;
 
         bool success;
         assembly {
@@ -353,7 +353,11 @@ library BLSSignature {
         G2Point memory signature = decodeG2Point(encodedSignature, signatureYCoordinate);
 
         G2Point memory messageOnCurve = hashToCurve(message);
-        return pairing(publicKey, messageOnCurve) == pairing(P1(), signature);
+        bytes32 firstPairing = pairing(publicKey, messageOnCurve);
+        bytes32 secondPairing = pairing(P1(), signature);
+        require(firstPairing == secondPairing, "signature verification failed as pairing results did not match");
+        require(firstPairing == 0x1, "signature verification failed as pairings did not map to the identity in Gt");
+        return true;
     }
 }
 
