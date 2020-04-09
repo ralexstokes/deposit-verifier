@@ -2,7 +2,12 @@ pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
 interface DepositContract {
-    function deposit(bytes calldata, bytes32, bytes calldata, bytes32) external payable;
+    function deposit(
+        bytes calldata publicKey,
+        bytes32 withdrawalCredentials,
+        bytes calldata signature,
+        bytes32 depositDataRoot
+    ) external payable;
 }
 
 library DepositSSZ {
