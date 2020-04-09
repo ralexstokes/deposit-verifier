@@ -6,6 +6,8 @@ interface DepositContract {
 }
 
 library DepositSSZ {
+    uint constant PUBLIC_KEY_LENGTH = 48;
+
     uint constant WEI_PER_GWEI = 1e9;
     // Constant related to versioning serializations of deposits on eth2
     bytes32 constant DEPOSIT_DOMAIN = 0x03000000f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a9;
