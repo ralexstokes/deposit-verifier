@@ -1,4 +1,4 @@
-pragma solidity ^0.6.4;
+pragma solidity ^0.6.6;
 pragma experimental ABIEncoderV2;
 
 interface DepositContract {
@@ -110,7 +110,7 @@ library BLSSignature {
         bytes memory output = new bytes(256);
         bytes32 chunk = sha256(abi.encodePacked(b0, byte(0x01), bytes(BLS_SIG_DST)));
         assembly {
-            mstore(add(output, 0x20), chunk);
+            mstore(add(output, 0x20), chunk)
         }
         for (uint i = 2; i < 9; i++) {
             bytes32 input;
