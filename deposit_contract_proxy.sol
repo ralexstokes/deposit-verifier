@@ -1,7 +1,7 @@
 pragma solidity ^0.6.4;
 
 interface DepositContract {
-    function deposit(bytes, bytes32, bytes, bytes32) external payable;
+    function deposit(bytes calldata, bytes32, bytes calldata, bytes32) external payable;
 }
 
 library DepositSSZ {
