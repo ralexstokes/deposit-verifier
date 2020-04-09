@@ -320,7 +320,7 @@ library BLSSignature {
         uint ba = sliceToUint(encodedX, 80, 96);
         uint bb = sliceToUint(encodedX, 48, 80);
         Fp2 memory X = Fp2(
-            Fp(aa,ab),
+            Fp(aa, ab),
             Fp(ba, bb)
         );
         return G2Point(X, Y);
