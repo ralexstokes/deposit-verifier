@@ -66,7 +66,7 @@ library BLSSignature {
     struct Fp {
         uint a;
         uint b;
-    };
+    }
 
     // Fp2 is an extension field element with the coefficient of the
     // quadratic non-residue stored in `b`, i.e. p = a + i * b
@@ -98,7 +98,7 @@ library BLSSignature {
             sha256(message),
             sha256(message),
             sha256(message),
-            sha256(message),
+            sha256(message)
         );
     }
 
@@ -200,7 +200,7 @@ library BLSSignature {
                 input,
                 128,
                 result,
-                256,
+                256
             )
             // Use "invalid" to make gas estimation work
             switch success case 0 { invalid() }
@@ -236,7 +236,7 @@ library BLSSignature {
                 input,
                 512,
                 result,
-                256,
+                256
             )
             // Use "invalid" to make gas estimation work
             switch success case 0 { invalid() }
@@ -277,7 +277,7 @@ library BLSSignature {
                 input,
                 384,
                 result,
-                32,
+                32
             )
             // Use "invalid" to make gas estimation work
             switch success case 0 { invalid() }
@@ -290,12 +290,12 @@ library BLSSignature {
         return G1Point(
             Fp(
                 31827880280837800241567138048534752271,
-                88385725958748408079899006800036250932223001591707578097800747617502997169851,
+                88385725958748408079899006800036250932223001591707578097800747617502997169851
             ),
             Fp(
                 11568204302792691131076548377920244452,
                 114417265404584670498511149331300188430316142484413708742216858159411894806497
-            ),
+            )
         );
     }
 
@@ -313,7 +313,7 @@ library BLSSignature {
         uint bb = sliceToUint(encodedX, 48, 80);
         Fp2 X = Fp2(
             Fp(aa,ab),
-            Fp(ba, bb),
+            Fp(ba, bb)
         );
         return G2Point(X, Y);
     }
@@ -323,7 +323,7 @@ library BLSSignature {
         bytes memory encodedPublicKey,
         bytes memory encodedSignature,
         Fp publicKeyYCoordinate,
-        Fp2 signatureYCoordinate,
+        Fp2 signatureYCoordinate
     ) internal view returns (bool) {
         G1Point publicKey = decodeG1Point(encodedPublicKey, publicKeyYCoordinate);
         G2Point signature = decodeG2Point(encodedSignature, signatureYCoordinate);
@@ -349,7 +349,7 @@ contract DepositContractProxy  {
         bytes memory signature,
         bytes32 depositDataRoot,
         Fp publicKeyYCoordinate,
-        Fp2 signatureYCoordinate,
+        Fp2 signatureYCoordinate
     ) public payable {
         require(publicKey.length == PUBLIC_KEY_LENGTH, "incorrectly sized public key");
         require(signature.length == SIGNATURE_LENGTH, "incorrectly sized signature");
