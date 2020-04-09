@@ -92,14 +92,14 @@ library BLSSignature {
         // uint LEN_IN_BYTES = 256;
         // TODO implement `expand_message_xmd` with `message`, `DST` and `LEN_IN_BYTES`
         return abi.encodePacked(
-            sha256(message),
-            sha256(message),
-            sha256(message),
-            sha256(message),
-            sha256(message),
-            sha256(message),
-            sha256(message),
-            sha256(message)
+            sha256(abi.encodePacked(message)),
+            sha256(abi.encodePacked(message)),
+            sha256(abi.encodePacked(message)),
+            sha256(abi.encodePacked(message)),
+            sha256(abi.encodePacked(message)),
+            sha256(abi.encodePacked(message)),
+            sha256(abi.encodePacked(message)),
+            sha256(abi.encodePacked(message))
         );
     }
 
