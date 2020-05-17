@@ -67,7 +67,7 @@ library BLSSignature {
     uint8 constant BLS12_381_MAP_FIELD_TO_CURVE_PRECOMPILE_ADDRESS = 0xB;
     uint8 constant BLS12_381_G2_ADD_ADDRESS = 0xC;
     uint8 constant BLS12_381_G2_MULTIPLY_ADDRESS = 0xD;
-    string constant BLS_SIG_DST = "+BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
+    string constant BLS_SIG_DST = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_+";
     uint8 constant MOD_EXP_PRECOMPILE_ADDRESS = 0x5;
 
     // Fp is a field element with the high-order part stored in `a`.
