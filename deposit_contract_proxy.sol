@@ -309,16 +309,17 @@ library BLSSignature {
         require(success, "call to pairing precompile failed");
     }
 
-    // Return the generator of G1.
-    function P1() private pure returns (G1Point memory) {
+    // Return -P1, negative of the generator of the group G1.
+    // NOTE: computed via: for G1 = (x,y), -G1 = (x, -y)
+    function negativeP1() private pure returns (G1Point memory) {
         return G1Point(
             Fp(
                 31827880280837800241567138048534752271,
                 88385725958748408079899006800036250932223001591707578097800747617502997169851
             ),
             Fp(
-                11568204302792691131076548377920244452,
-                114417265404584670498511149331300188430316142484413708742216858159411894806497
+                22997279242622214937712647648895181298,
+                46816884707101390882112958134453447585552332943769894357249934112654335001290
             )
         );
     }
@@ -351,13 +352,11 @@ library BLSSignature {
     ) internal view returns (bool) {
         G1Point memory publicKey = decodeG1Point(encodedPublicKey, publicKeyYCoordinate);
         G2Point memory signature = decodeG2Point(encodedSignature, signatureYCoordinate);
-
         G2Point memory messageOnCurve = hashToCurve(message);
+
         bytes32 firstPairing = pairing(publicKey, messageOnCurve);
-        bytes32 secondPairing = pairing(P1(), signature);
-        require(firstPairing == secondPairing, "signature verification failed as pairing results did not match");
-        require(firstPairing == 0x1, "signature verification failed as pairings did not map to the identity in Gt");
-        return true;
+        bytes32 secondPairing = pairing(negativeP1(), signature);
+        return (uint(firstPairing) * uint(secondPairing)) == 1;
     }
 }
 
@@ -396,7 +395,7 @@ contract DepositContractProxy  {
                 publicKeyYCoordinate,
                 signatureYCoordinate
             ),
-            "invalid BLS signature given deposit data"
+            "BLS signature verification failed"
         );
 
         depositContract.deposit{value: msg.value}(
