@@ -268,7 +268,7 @@ library BLSSignature {
         require(success, "call to addition in G2 precompile failed");
     }
 
-    // Implements v6 of "hash to the curve" of the IETF BLS draft.
+    // Implements "hash to the curve" from the IETF BLS draft.
     function hashToCurve(bytes32 message) private view returns (G2Point memory) {
         Fp2[2] memory messageElementsInField = hashToField(message);
         G2Point memory firstPoint = mapToCurve(messageElementsInField[0]);
