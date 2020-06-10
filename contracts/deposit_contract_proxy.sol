@@ -380,14 +380,15 @@ contract DepositContractProxy  {
     function decodeG2Point(bytes memory encodedX, Fp2 memory Y) private pure returns (G2Point memory) {
         encodedX[0] = encodedX[0] & BLS_BYTE_WITHOUT_FLAGS_MASK;
         // NOTE: the "flag bits" of the second half of `encodedX` are always == 0x0
-        uint aa = sliceToUint(encodedX, 0, 16);
-        uint ab = sliceToUint(encodedX, 16, 48);
-        uint ba = sliceToUint(encodedX, 48, 64);
-        uint bb = sliceToUint(encodedX, 64, 96);
+
         // NOTE: order is important here for decoding point...
+        uint aa = sliceToUint(encodedX, 48, 64);
+        uint ab = sliceToUint(encodedX, 64, 96);
+        uint ba = sliceToUint(encodedX, 0, 16);
+        uint bb = sliceToUint(encodedX, 16, 48);
         Fp2 memory X = Fp2(
-            Fp(ba, bb),
-            Fp(aa, ab)
+            Fp(aa, ab),
+            Fp(ba, bb)
         );
         return G2Point(X, Y);
     }

@@ -1,1 +1,0 @@
-[{"inputs":[{"internalType":"bytes","name":"publicKey","type":"bytes"},{"internalType":"bytes","name":"withdrawalCredentials","type":"bytes"},{"internalType":"bytes","name":"signature","type":"bytes"},{"internalType":"bytes32","name":"depositDataRoot","type":"bytes32"}],"name":"deposit","outputs":[],"stateMutability":"payable","type":"function"}]
