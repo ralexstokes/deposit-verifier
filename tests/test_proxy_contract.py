@@ -236,7 +236,6 @@ def test_deposit_works(
     signature,
     deposit_data_root,
     deposit_amount,
-    w3,
 ):
     assert (
         int.from_bytes(
