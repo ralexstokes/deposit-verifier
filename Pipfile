@@ -1,0 +1,19 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+pytest = "*"
+web3 = "*"
+eth-tester = "==0.5.0b1"
+eth2spec = "*"
+py-evm = {editable = true,git = "https://github.com/cburgdorf/py-evm.git",ref = "christoph/feat/berlin-stub"}
+
+[requires]
+python_version = "3.8"
+
+[pipenv]
+allow_prereleases = true
