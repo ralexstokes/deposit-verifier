@@ -9,8 +9,8 @@ verify_ssl = true
 pytest = "*"
 web3 = "*"
 eth-tester = "==0.5.0b1"
-eth2spec = "*"
 py-evm = {editable = true,git = "https://github.com/cburgdorf/py-evm.git",ref = "christoph/feat/berlin-stub"}
+eth2spec = "*"
 
 [requires]
 python_version = "3.8"
