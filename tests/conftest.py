@@ -71,16 +71,28 @@ def deposit_contract(w3):
 
 
 @pytest.fixture
-def proxy_contract(w3, deposit_contract):
-    contract_bytecode = get_proxy_contract_bytecode()
-    contract_abi = get_proxy_contract_abi()
-    proxy = w3.eth.contract(abi=contract_abi, bytecode=contract_bytecode)
-    tx_hash = proxy.constructor(deposit_contract.address).transact()
-    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-    proxy_deployed = w3.eth.contract(
-        address=tx_receipt.contractAddress, abi=contract_abi
+def deposit_domain():
+    return bytes.fromhex(
+        "03000000f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a9"
     )
-    return proxy_deployed
+
+@pytest.fixture
+def proxy_contract_deployer():
+    def _deployer(w3, deposit_contract_address, deposit_domain):
+        contract_bytecode = get_proxy_contract_bytecode()
+        contract_abi = get_proxy_contract_abi()
+        proxy = w3.eth.contract(abi=contract_abi, bytecode=contract_bytecode)
+        tx_hash = proxy.constructor(deposit_contract_address, deposit_domain).transact()
+        tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+        return w3.eth.contract(
+            address=tx_receipt.contractAddress, abi=contract_abi
+        )
+    return _deployer
+
+
+@pytest.fixture
+def proxy_contract(w3, deposit_contract, deposit_domain, proxy_contract_deployer):
+    return proxy_contract_deployer(w3, deposit_contract.address, deposit_domain)
 
 
 @pytest.fixture

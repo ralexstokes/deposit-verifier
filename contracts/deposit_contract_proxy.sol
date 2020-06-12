@@ -14,10 +14,7 @@ interface DepositContract {
 contract DepositContractProxy  {
     uint constant PUBLIC_KEY_LENGTH = 48;
     uint constant SIGNATURE_LENGTH = 96;
-
     uint constant WEI_PER_GWEI = 1e9;
-    // Constant related to versioning serializations of deposits on eth2
-    bytes32 constant DEPOSIT_DOMAIN = 0x03000000f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a9;
 
     uint8 constant BLS12_381_PAIRING_PRECOMPILE_ADDRESS = 0x10;
     uint8 constant BLS12_381_MAP_FIELD_TO_CURVE_PRECOMPILE_ADDRESS = 0x12;
@@ -52,10 +49,13 @@ contract DepositContractProxy  {
         Fp2 Y;
     }
 
-    DepositContract depositContract;
+    DepositContract immutable depositContract;
+    // Constant related to versioning serializations of deposits on eth2
+    bytes32 immutable DEPOSIT_DOMAIN;
 
-    constructor(address depositContractAddress) public {
+    constructor(address depositContractAddress, bytes32 deposit_domain) public {
         depositContract = DepositContract(depositContractAddress);
+        DEPOSIT_DOMAIN = deposit_domain;
     }
 
     // Return a `wei` value in units of Gwei and serialize as a (LE) `bytes8`.
@@ -79,7 +79,7 @@ contract DepositContractProxy  {
         bytes memory publicKey,
         bytes32 withdrawalCredentials,
         uint amount
-    ) public pure returns (bytes32) {
+    ) public view returns (bytes32) {
         bytes memory serializedPublicKey = new bytes(64);
         for (uint i = 0; i < PUBLIC_KEY_LENGTH; i++) {
             serializedPublicKey[i] = publicKey[i];
