@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: The Unlicense
-pragma solidity ^0.6.8;
+pragma solidity ^0.6.10;
 pragma experimental ABIEncoderV2;
 
 interface DepositContract {
