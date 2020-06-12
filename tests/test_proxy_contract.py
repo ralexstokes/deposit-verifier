@@ -641,3 +641,53 @@ def test_verify_and_deposit_fails_with_incorrect_deposit_data_root(
         )
         == 0
     )
+
+
+def test_verify_and_deposit_fails_with_differing_deposit_domain(
+    proxy_contract_deployer,
+    w3,
+    deposit_domain,
+    deposit_contract,
+    bls_public_key,
+    withdrawal_credentials,
+    signature,
+    deposit_data_root,
+    public_key_witness,
+    signature_witness,
+    deposit_amount,
+    assert_tx_failed,
+):
+    assert (
+        int.from_bytes(
+            deposit_contract.functions.get_deposit_count().call(), byteorder="little"
+        )
+        == 0
+    )
+
+    assert (
+        deposit_contract.functions.get_deposit_root().call().hex() == EMPTY_DEPOSIT_ROOT
+    )
+
+    some_other_deposit_domain = b"\x99" + deposit_domain[1:]
+    assert deposit_domain != some_other_deposit_domain
+    proxy_contract = proxy_contract_deployer(w3, deposit_contract.address, some_other_deposit_domain)
+
+    public_key_witness_repr = _convert_int_to_fp_repr(public_key_witness)
+    signature_witness_repr = _convert_int_to_fp2_repr(signature_witness)
+    amount_in_wei = deposit_amount * 10 ** 9
+    txn = proxy_contract.functions.verifyAndDeposit(
+        bls_public_key,
+        withdrawal_credentials,
+        signature,
+        deposit_data_root,
+        public_key_witness_repr,
+        signature_witness_repr,
+    )
+    assert_tx_failed(lambda: txn.transact({"value": amount_in_wei}))
+
+    assert (
+        int.from_bytes(
+            deposit_contract.functions.get_deposit_count().call(), byteorder="little"
+        )
+        == 0
+    )
