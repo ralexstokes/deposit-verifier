@@ -1,19 +1,13 @@
 // SPDX-License-Identifier: The Unlicense
-pragma solidity ^0.6.10;
+pragma solidity 0.6.8;
 pragma experimental ABIEncoderV2;
 
-interface DepositContract {
-    function deposit(
-        bytes calldata publicKey,
-        bytes calldata withdrawalCredentials,
-        bytes calldata signature,
-        bytes32 depositDataRoot
-    ) external payable;
-}
+import { IDepositContract } from "./eth2-deposit-contract/deposit_contract.sol";
 
-contract DepositContractProxy  {
+contract DepositVerifier  {
     uint constant PUBLIC_KEY_LENGTH = 48;
     uint constant SIGNATURE_LENGTH = 96;
+    uint constant WITHDRAWAL_CREDENTIALS_LENGTH = 32;
     uint constant WEI_PER_GWEI = 1e9;
 
     uint8 constant BLS12_381_PAIRING_PRECOMPILE_ADDRESS = 0x10;
@@ -49,12 +43,12 @@ contract DepositContractProxy  {
         Fp2 Y;
     }
 
-    DepositContract immutable depositContract;
+    IDepositContract immutable depositContract;
     // Constant related to versioning serializations of deposits on eth2
     bytes32 immutable DEPOSIT_DOMAIN;
 
     constructor(address depositContractAddress, bytes32 deposit_domain) public {
-        depositContract = DepositContract(depositContractAddress);
+        depositContract = IDepositContract(depositContractAddress);
         DEPOSIT_DOMAIN = deposit_domain;
     }
 
@@ -77,7 +71,7 @@ contract DepositContractProxy  {
     // NOTE: function is exposed for testing...
     function computeSigningRoot(
         bytes memory publicKey,
-        bytes32 withdrawalCredentials,
+        bytes memory withdrawalCredentials,
         uint amount
     ) public view returns (bytes32) {
         bytes memory serializedPublicKey = new bytes(64);
@@ -410,13 +404,14 @@ contract DepositContractProxy  {
 
     function verifyAndDeposit(
         bytes calldata publicKey,
-        bytes32 withdrawalCredentials,
+        bytes calldata withdrawalCredentials,
         bytes calldata signature,
         bytes32 depositDataRoot,
         Fp calldata publicKeyYCoordinate,
         Fp2 calldata signatureYCoordinate
-    ) public payable {
+    ) external payable {
         require(publicKey.length == PUBLIC_KEY_LENGTH, "incorrectly sized public key");
+        require(withdrawalCredentials.length == WITHDRAWAL_CREDENTIALS_LENGTH, "incorrectly sized withdrawal credentials");
         require(signature.length == SIGNATURE_LENGTH, "incorrectly sized signature");
 
         bytes32 signingRoot = computeSigningRoot(
@@ -436,30 +431,6 @@ contract DepositContractProxy  {
             "BLS signature verification failed"
         );
 
-
-        // NOTE: old vyper contract expects a previous (?) version of ABI encoding
-        // which we manually encode here. it also seems that we can only put a limited number
-        // of arguments into `abi.encodePacked` so we have to break into pieces.
-        bytes memory prefix = abi.encodePacked(
-            depositContract.deposit.selector,
-            uint(0x80),
-            uint(0xe0),
-            uint(0x120),
-            depositDataRoot,
-            uint(0x30),
-            publicKey,
-            uint128(0x0),
-            uint(0x20)
-        );
-
-        (bool success,) = address(depositContract).call{value: msg.value}(
-            abi.encodePacked(
-                prefix,
-                withdrawalCredentials,
-                uint(0x60),
-                signature
-            )
-        );
-        require(success, "call to deposit contract failed");
+        depositContract.deposit(publicKey, withdrawalCredentials, signature, depositDataRoot);
     }
 }

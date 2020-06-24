@@ -1,11 +1,14 @@
-# deposit-contract-verifying-proxy
+# deposit-verifier
 
 A smart contract to enhance the user experience of the `eth2` deposit contract.
 
+Exposes functionality on-chain to verify different parts of an `eth2` deposit intended for the beacon chain.
+
+Includes a "proxy" deposit function that will run the verification logic on-chain and only upon success forward the deposit to the actual deposit contract.
+
 # NOTICE
 
-This smart contract has not been tested, audited or formally verified. It should
-be considered pre-alpha. USE AT YOUR OWN RISK.
+This smart contract has not been tested, audited or formally verified. It should be considered pre-alpha. USE AT YOUR OWN RISK.
 
 ## What is this?
 
