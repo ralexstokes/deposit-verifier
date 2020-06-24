@@ -23,22 +23,19 @@ from web3.providers.eth_tester import EthereumTesterProvider
 DIR = os.path.dirname(__file__)
 
 
-def get_deposit_contract_json():
-    file_path = os.path.join(DIR, "../contracts/validator_registration.json")
-    deposit_contract_json = open(file_path).read()
-    return json.loads(deposit_contract_json)
-
-
-def get_proxy_contract_abi():
-    file_path = os.path.join(DIR, "../contracts/DepositContractProxy.abi")
-    with open(file_path) as f:
-        return json.load(f)
-
-
-def get_proxy_contract_bytecode():
-    file_path = os.path.join(DIR, "../contracts/DepositContractProxy.bin")
-    with open(file_path) as f:
+def _get_json(filename):
+    with open(filename) as f:
         return f.read()
+
+
+def get_deposit_contract_json():
+    filename = os.path.join(DIR, "../eth2-deposit-contract/deposit_contract.json")
+    return _get_json(filename)
+
+
+def get_proxy_contract_json():
+    filename = os.path.join(DIR, "../deposit_verifier.json")
+    return _get_json(filename)
 
 
 @pytest.fixture
@@ -57,36 +54,31 @@ def w3(tester):
     return web3
 
 
-@pytest.fixture
-def deposit_contract(w3):
-    contract_bytecode = get_deposit_contract_json()["bytecode"]
-    contract_abi = get_deposit_contract_json()["abi"]
+def _deploy_contract(contract_json, w3, *args):
+    contract_bytecode = contract_json["bytecode"]
+    contract_abi = contract_json["abi"]
     registration = w3.eth.contract(abi=contract_abi, bytecode=contract_bytecode)
-    tx_hash = registration.constructor().transact()
+    tx_hash = registration.constructor(*args).transact()
     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-    registration_deployed = w3.eth.contract(
+    contract_deployed = w3.eth.contract(
         address=tx_receipt.contractAddress, abi=contract_abi
     )
-    return registration_deployed
+    return contract_deployed
 
+@pytest.fixture
+def deposit_contract(w3):
+    return _deploy_contract(get_deposit_contract_json(), w3)
 
 @pytest.fixture
 def deposit_domain():
-    return bytes.fromhex(
-        "03000000f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a9"
-    )
+    return compute_domain(DOMAIN_DEPOSIT)
+
 
 @pytest.fixture
 def proxy_contract_deployer():
     def _deployer(w3, deposit_contract_address, deposit_domain):
-        contract_bytecode = get_proxy_contract_bytecode()
-        contract_abi = get_proxy_contract_abi()
-        proxy = w3.eth.contract(abi=contract_abi, bytecode=contract_bytecode)
-        tx_hash = proxy.constructor(deposit_contract_address, deposit_domain).transact()
-        tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-        return w3.eth.contract(
-            address=tx_receipt.contractAddress, abi=contract_abi
-        )
+        return _deploy_contract(get_proxy_contract_json(), w3, deposit_contract_address, deposit_domain)
+
     return _deployer
 
 
@@ -144,9 +136,8 @@ def deposit_message(bls_public_key, withdrawal_credentials, deposit_amount):
 
 
 @pytest.fixture
-def signing_root(deposit_message):
-    domain = compute_domain(DOMAIN_DEPOSIT)
-    return compute_signing_root(deposit_message, domain)
+def signing_root(deposit_message, deposit_domain):
+    return compute_signing_root(deposit_message, deposit_domain)
 
 
 @pytest.fixture
