@@ -13,7 +13,7 @@ py-evm = {editable = true,git = "https://github.com/cburgdorf/py-evm.git",ref = 
 eth2spec = "*"
 
 [requires]
-python_version = "3.8"
+python_version = "3.7"
 
 [pipenv]
 allow_prereleases = true
