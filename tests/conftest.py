@@ -25,7 +25,7 @@ DIR = os.path.dirname(__file__)
 
 def _get_json(filename):
     with open(filename) as f:
-        return f.read()
+        return json.load(f)
 
 
 def get_deposit_contract_json():
