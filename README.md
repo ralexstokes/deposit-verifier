@@ -64,8 +64,8 @@ $ pipenv install
 
 ## Testing
 
-Once all of the dependencies are installed, you can use `pytest` (inside the virtualenv you have created).
+Once all of the dependencies are installed, you can use `pytest` (inside the virtualenv you have created). The `-n auto` flag will attempt to parallelize the test runs.
 
 ``` shell
-$ pytest tests
+$ pytest -n auto tests
 ```
