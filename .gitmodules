@@ -1,0 +1,3 @@
+[submodule "eth2-deposit-contract"]
+	path = eth2-deposit-contract
+	url = https://github.com/axic/eth2-deposit-contract
