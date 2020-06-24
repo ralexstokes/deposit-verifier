@@ -431,6 +431,6 @@ contract DepositVerifier  {
             "BLS signature verification failed"
         );
 
-        depositContract.deposit(publicKey, withdrawalCredentials, signature, depositDataRoot);
+        depositContract.deposit{value: msg.value}(publicKey, withdrawalCredentials, signature, depositDataRoot);
     }
 }
