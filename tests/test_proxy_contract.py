@@ -14,8 +14,6 @@ from py_ecc.bls import G2ProofOfPossession
 from py_ecc.optimized_bls12_381 import FQ2, normalize
 
 EMPTY_DEPOSIT_ROOT = "d70a234731285c6804c2a4f56711ddb8c82c99740f207854891028af34e27e5e"
-DEPOSIT_EVENT_SIGNATURE = "DepositEvent(bytes,bytes,bytes,bytes,bytes)".encode()
-DEPOSIT_EVENT_TOPIC = keccak(DEPOSIT_EVENT_SIGNATURE)
 
 
 def test_compute_signing_root_matches_spec(
