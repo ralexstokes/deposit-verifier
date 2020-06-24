@@ -10,10 +10,10 @@ pytest = "*"
 web3 = "*"
 eth-tester = "==0.5.0b1"
 py-evm = {editable = true,git = "https://github.com/cburgdorf/py-evm.git",ref = "christoph/feat/berlin-stub"}
-eth2spec = "*"
+eth2spec = "==0.12.1"
 
 [requires]
-python_version = "3.7"
+python_version = "3.8"
 
 [pipenv]
 allow_prereleases = true
