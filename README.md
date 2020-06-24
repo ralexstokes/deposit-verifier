@@ -1,11 +1,14 @@
-# deposit-contract-verifying-proxy
+# deposit-verifier
 
 A smart contract to enhance the user experience of the `eth2` deposit contract.
 
+Exposes functionality on-chain to verify different parts of an `eth2` deposit intended for the beacon chain.
+
+Includes a "proxy" deposit function that will run the verification logic on-chain and only upon success forward the deposit to the actual deposit contract.
+
 # NOTICE
 
-This smart contract has not been tested, audited or formally verified. It should
-be considered pre-alpha. USE AT YOUR OWN RISK.
+This smart contract has not been tested, audited or formally verified. It should be considered pre-alpha. USE AT YOUR OWN RISK.
 
 ## What is this?
 
@@ -14,6 +17,24 @@ Validators of the eth2 network join by making a deposit to a smart contract call
 One part of making a valid deposit is the inclusion of a valid signature according to the eth2 signature scheme `BLS`. In an attempt to keep the deposit contract minimal (and therefore easier to get correct), the verification of the `BLS` signature is omitted. Moreover, the efficient verification of this signature requires precompiles that are scheduled for the eth1 `Berlin` hardfork but are not currently available on mainnet and were not when the deposit contract was written. 
 
 This "verifying proxy" contract wraps the deposit contract, requiring a valid `BLS` signature before proceeding to make a call to the `deposit` function on the deposit contract. This proxy contract enhances the usability of the deposit contract by reducing the chance a potential validator will make a bad deposit resulting in lost ETH.
+
+# Installation
+
+The deposit contract is maintained as a git submodule of this repo. To pull down the full repo:
+
+``` shell
+$ git clone --recurse-submodules $REMOTE_ADDRESS
+```
+
+where `$REMOTE_ADDRESS` is the address of this github repo.
+
+
+If you have already cloned this repo, you should be able to manually fetch the submodule:
+
+``` shell
+$ git submodule init
+$ git submodule update
+```
 
 # How to compile the contract
 
@@ -43,8 +64,8 @@ $ pipenv install
 
 ## Testing
 
-Once all of the dependencies are installed, you can use `pytest` (inside the virtualenv you have created).
+Once all of the dependencies are installed, you can use `pytest` (inside the virtualenv you have created). The `-n auto` flag will attempt to parallelize the test runs.
 
 ``` shell
-$ pytest tests
+$ pytest -n auto tests
 ```
